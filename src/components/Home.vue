@@ -9,17 +9,21 @@
           <img v-for="(item, index) in activityDatas" :key="index" :src="item.icon" alt="">
         </div>
       </Activity>
+      <!-- 功能选项 -->
+      <mode-options></mode-options>
     </div>
   </div>
 </template>
 <script>
 import MySwiper from '@c/swiper/MySwiper.vue'
 import Activity from '@c/currency/Activity.vue'
+import ModeOptions from '@c/currency/ModeOptions.vue'
 
 export default {
   components: {
     MySwiper,
-    Activity
+    Activity,
+    ModeOptions
   },
   data() {
     return {
@@ -46,6 +50,8 @@ export default {
       //   .then(data => {
       //     this.activityDatas = data.list
       //   })
+
+      // axios 同时发送多个请求（并行）
       this.$http
         .all([this.$http.get('/swiper'), this.$http.get('/activitys')])
         .then(
