@@ -6,6 +6,8 @@ $rootFontSize: 375 / 10;
   @return $px / $rootFontSize + rem;
 }
 
+$titleSize: px2rem(16);
 $infoSize: px2rem(14);
 $marginSize: px2rem(8);
 $minInfoSize: px2rem(12);
+$radiusSize: px2rem(6);
