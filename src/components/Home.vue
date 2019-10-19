@@ -34,18 +34,26 @@ export default {
   methods: {
     // 获取数据
     initData() {
+      // this.$http.get('/swiper')
+      //   .then(data => {
+      //     this.swiperData = data.list.map(item => item.icon)
+      //   })
+      //   .catch(err => {
+      //     console.log(err)
+      //   })
+      // // 520活动数据
+      // this.$http.get('/activitys')
+      //   .then(data => {
+      //     this.activityDatas = data.list
+      //   })
       this.$http
-        .get('/swiper')
-        .then(data => {
-          this.swiperData = data.list.map(item => item.icon)
-        })
-        .catch(err => {
-          console.log(err)
-        })
-      // 520活动数据
-      this.$http.get('/activitys').then(data => {
-        this.activityDatas = data.list
-      })
+        .all([this.$http.get('/swiper'), this.$http.get('/activitys')])
+        .then(
+          this.$http.spread((swiperData, activityData) => {
+            this.swiperData = swiperData.list.map(item => item.icon)
+            this.activityDatas = activityData.list
+          })
+        )
     }
   }
 }
