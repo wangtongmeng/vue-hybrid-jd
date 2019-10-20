@@ -13,6 +13,12 @@
       <mode-options></mode-options>
       <!-- 秒杀模块 -->
       <seconds :dataSource="secondsDatas"></seconds>
+      <!-- 拼购节 -->
+      <activity>
+        <div class="activity-pin-gou-jie">
+          <img src="@img/pinGouJie.gif" />
+        </div>
+      </activity>
     </div>
   </div>
 </template>
@@ -80,6 +86,9 @@ export default {
 .home {
   width: 100%;
   height: 100%;
+  background-color: $bgColor;
+  overflow: hidden;
+  overflow-y: auto;
   &-content {
     height: 100%;
 
