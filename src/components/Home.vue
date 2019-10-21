@@ -19,6 +19,8 @@
           <img src="@img/pinGouJie.gif" />
         </div>
       </activity>
+      <!-- 商品列表 -->
+      <goods></goods>
     </div>
   </div>
 </template>
@@ -27,13 +29,15 @@ import MySwiper from '@c/swiper/MySwiper.vue'
 import Activity from '@c/currency/Activity.vue'
 import ModeOptions from '@c/currency/ModeOptions.vue'
 import Seconds from '@c/seconds/Seconds.vue'
+import Goods from '@c/goods/Goods.vue'
 
 export default {
   components: {
     MySwiper,
     Activity,
     ModeOptions,
-    Seconds
+    Seconds,
+    Goods
   },
   data() {
     return {
@@ -73,7 +77,6 @@ export default {
           this.$http.spread((swiperData, activityData, secondsData) => {
             this.swiperData = swiperData.list.map(item => item.icon)
             this.activityDatas = activityData.list
-            console.log(secondsData.list)
             this.secondsDatas = secondsData.list
           })
         )
