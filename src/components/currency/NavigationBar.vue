@@ -7,7 +7,7 @@
      -->
   <div class="nav-bar z-index-max" :class="{'bottom-line': pageName}" :style="navBarStyle">
     <!-- 左 -->
-    <div class="left">
+    <div class="left" @click="$emit('onLeftClick')">
       <!-- 默认状态 -->
       <img v-if="isShowBack" src="@img/back.svg" alt="">
       <!-- 具名插槽 -->
@@ -87,6 +87,7 @@ export default {
 
     .page-title {
       font-size: $titleSize;
+      margin: 0 auto;
     }
   }
 }
