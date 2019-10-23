@@ -1,33 +1,53 @@
 <template>
   <!--
-      瀑布流的布局：
-      1、创建商品列表的基本html 和 css ， 让 item 相对于 goods（div）进行排列(相对布局)
-      2、生成不同高度的图片，撑起不同高度的 item。
-      3、计算 item 的位置，来达到 从上到下，从左到右依次排列的目的
-    -->
-  <div>
-    <div class="goods goods-waterfall" :style="{height: goodsViewHeight}">
-      <div class="goods-item goods-waterfall-item" v-for="(item, index) in dataSource" ref="goodsItem" :key="index" :style="goodsItemStyles[index]">
-        <!-- 图片 -->
-        <img class="goods-item-img" :src="item.img" alt="" :style="imgStyles[index]">
-        <!-- 描述 -->
-        <div class="goods-item-desc">
-          <p class="goods-item-desc-name text-line-2" :class="{'goods-item-desc-name-hint': !item.isHava}">
-            <!-- 是否为直营 -->
-            <direct v-if="item.isDirect"></direct>
-            <!-- 是否有库存 -->
-            <no-have v-if="!item.isHave"></no-have>
-            {{item.name}}
-          </p>
-          <div class="goods-item-desc-data">
-            <p class="goods-item-desc-data-price">￥{{item.price | priceValue}}</p>
-            <p class="goods-item-desc-data-volume">销量：{{item.volume}}</p>
-          </div>
+    如何在同一个组件中去展示不同的样式：
+    1、html 表示整个布局的结构，具体的展示样式，将有 css 决定。
+    2、每种展示样式对应不同的 css，也就是对应不同的类名（css）
+        1、垂直列表 -> goods-list
+        2、网格布局 -> goods-grid
+        3、瀑布流布局 -> goods-waterfall
+    3、实现不同的展示形式，本质上就是实现不同的 css 样式。
+
+    瀑布流的布局：
+    1、创建商品列表的基本html 和 css ， 让 item 相对于 goods（div）进行排列(相对布局)
+    2、生成不同高度的图片，撑起不同高度的 item。
+    3、计算 item 的位置，来达到 从上到下，从左到右依次排列的目的
+  -->
+
+  <!--
+      如果不允许 goods 单独滑动，那么就不添加 goods-scroll 类
+  -->
+
+  <!--
+    商品排序：
+        1、排序之后的数据源，用来在 html 中进行展示（替换掉 dataSource）。
+        2、定义排序规则。（可以直接使用 GoodsOptions 中数据源的 id）
+        3、定义排序的方法，根据 排序规则来修改对应的排序。
+  -->
+
+  <div class="goods" :class="[layoutClass, {'goods-scroll' : isScroll}]" :style="{height: goodsViewHeight}" ref="goods" @scroll="onScrollChange">
+    <div class="goods-item" :class="layoutItemClass" ref="goodsItem" @click="onItemClick(item)" v-for="(item, index) in sortGoodsData" :key="index" :style="goodsItemStyles[index]">
+      <!-- 图片 -->
+      <img class="goods-item-img" :src="item.img" alt="" :style="imgStyles[index]">
+      <!-- desc -> description (描述) -->
+      <div class="goods-item-desc">
+        <p class="goods-item-desc-name text-line-2" :class="{'goods-item-desc-name-hint' : !item.isHave}">
+          <!-- 是否为直营 -->
+          <direct v-if="item.isDirect"></direct>
+          <!-- 是否有库存 -->
+          <no-have v-if="!item.isHave"></no-have>
+          {{item.name}}
+        </p>
+        <div class="goods-item-desc-data">
+          <p class="goods-item-desc-data-price">￥{{item.price | priceValue}}</p>
+          <p class="goods-item-desc-data-volume">销量：{{item.volume}}</p>
         </div>
       </div>
     </div>
   </div>
+
 </template>
+
 <script>
 import Direct from '@c/goods/Direct.vue'
 import NoHave from '@c/goods/NoHave.vue'
@@ -36,13 +56,44 @@ export default {
     Direct,
     NoHave
   },
-  created() {
-    this.initData()
+  props: {
+    /**
+     * 在父元素中指定的展示形式
+     * 1：垂直列表
+     * 2：网格布局
+     * 3：瀑布流布局
+     */
+    layoutType: {
+      type: String,
+      default: '1'
+    },
+    /**
+     * 是否允许 goods 单独滑动
+     * 默认允许 goods 单独滑动
+     */
+    isScroll: {
+      type: Boolean,
+      default: true
+    },
+    /**
+     * 排序规则(依赖 GoodsOptions 数据源的id)
+     * 1：默认
+     * 1-2：价格由高到低
+     * 1-3：销量由高到低
+     * 2：有货优先
+     * 3：直营优先
+     */
+    sort: {
+      type: String,
+      default: '1'
+    }
   },
   data() {
     return {
       // 数据源
       dataSource: [],
+      // 排序数据
+      sortGoodsData: [],
       // 最大高度
       MAX_IMG_HEIGHT: 230,
       // 最小高度
@@ -54,8 +105,24 @@ export default {
       // item 样式集合
       goodsItemStyles: [],
       // goods 组件的高度
-      goodsViewHeight: '100%'
+      goodsViewHeight: '100%',
+      // 不同展示形式下的类名
+      // 1、垂直列表的展示形式（默认） -> goods-list & goods-list-item.
+      // 2、网格布局的展示形式 -> goods-grid & goods-grid-item
+      layoutClass: 'goods-list',
+      layoutItemClass: 'goods-list-item',
+      // 滑动距离
+      scrollTopValue: 0
     }
+  },
+  created() {
+    this.initData()
+  },
+  activated() {
+    /**
+     * 定位页面滑动位置
+     */
+    this.$refs.goods.scrollTop = this.scrollTopValue
   },
   methods: {
     /**
@@ -64,18 +131,114 @@ export default {
     initData() {
       this.$http.get('/goods').then(data => {
         this.dataSource = data.list
-        this.initImgStyles()
-        // 调用创建瀑布流的方法（等到 dom 创建完成之后）
-        this.$nextTick(() => {
-          this.initWaterfall()
-        })
+        // 数据排序
+        this.setSortGoodsData()
+        // 设置布局
+        this.initLayout()
       })
+    },
+    /**
+     * 商品排序
+     */
+    setSortGoodsData() {
+      switch (this.sort) {
+        // 默认
+        case '1':
+          // 深拷贝，不改变原数组
+          this.sortGoodsData = this.dataSource.slice(0)
+          break
+        // 价格由高到低
+        case '1-2':
+          this.getSortGoodsDataFromKey('price')
+          break
+        // 销量由高到低
+        case '1-3':
+          this.getSortGoodsDataFromKey('volume')
+          break
+        // 有货优先
+        case '2':
+          this.getSortGoodsDataFromKey('isHave')
+          break
+        // 直营优先
+        case '3':
+          this.getSortGoodsDataFromKey('isDirect')
+          break
+      }
+    },
+    /**
+     * 根据传入的 key 来进行排序
+     */
+    getSortGoodsDataFromKey(key) {
+      /**
+       * sort 可以完成数组的数据排序。
+       * 当接收的值 为负数的时候，表示 goods1 排列在 goods2 之前。
+       * 当接受的值为正数的时候，表示 goods1 排列在 goods2 之后。
+       * 接受的值为 0 的时候，表示排序不变。
+       */
+      this.sortGoodsData.sort((goods1, goods2) => {
+        // 根据传入的 key 获取对应的 value
+        let v1 = goods1[key]
+        let v2 = goods2[key]
+        // 对 value 进行对比，
+        // boolean 类型的值（有货优先和直营优先）
+        if (typeof v1 === 'boolean') {
+          if (v1) {
+            return -1
+          }
+          if (v2) {
+            return 1
+          }
+          return 0
+        }
+        // float 类型值的处理（价格、销量）
+        if (parseFloat(v1) >= parseFloat(v2)) {
+          return -1
+        }
+        return 1
+      })
+    },
+    /**
+     * 设置布局，为不同的 layoutType 设定不同的展示形式
+     * 1、初始化影响到布局的数据
+     *      1、goodsViewHeight -> 垂直布局、网格布局（100%） 、瀑布流 (实际高度)
+     *      2、goodsItemStyles
+     *      3、imgStyles
+     * 2、为不同的 layoutType 设置不同的展示类
+     */
+    initLayout() {
+      // 初始化数据
+      this.goodsViewHeight = '100%'
+      this.goodsItemStyles = []
+      this.imgStyles = []
+      // 为不同的 layoutType 设置不同的展示类
+      switch (this.layoutType) {
+        // 垂直列表
+        case '1':
+          this.layoutClass = 'goods-list'
+          this.layoutItemClass = 'goods-list-item'
+          break
+        // 网格布局
+        case '2':
+          this.layoutClass = 'goods-grid'
+          this.layoutItemClass = 'goods-grid-item'
+          break
+        // 瀑布流布局
+        case '3':
+          this.layoutClass = 'goods-waterfall'
+          this.layoutItemClass = 'goods-waterfall-item'
+          this.initImgStyles()
+          // 调用创建瀑布流的方法(等到 dom 创建完成之后)
+          this.$nextTick(() => {
+            this.initWaterfall()
+          })
+          break
+      }
     },
     /**
      * 返回随机的图片高度
      */
     imgHeight() {
-      // Math.random() -> 0-1 随机数 * (高度区间) + 最低的图片高度
+      // Math.random() -> 0 - 1 随机数 * (高度区间) + 最低的图片高度
       let result = Math.floor(
         Math.random() * (this.MAX_IMG_HEIGHT - this.MIN_IMG_HEIGHT) +
           this.MIN_IMG_HEIGHT
@@ -139,24 +302,71 @@ export default {
 
         // 保存计算出的 item 的所有样式，配置到 item 上。
         this.goodsItemStyles.push(goodsItemStyle)
-        // 在不允许 Goods 单独滑动的时候
-        if (!this.isScroll) {
-          // 对比左右两侧最大的高度，最大的高度为 goods 组件的高度
-          this.goodsViewHeight =
-            (leftHeightTotal > rightHeightTotal
-              ? leftHeightTotal
-              : rightHeightTotal) + 'px'
+      })
+
+      // 在不允许 Goods 单独滑动的时候
+      if (!this.isScroll) {
+        // 对比左右两侧最大的高度，最大的高度为 goods 组件的高度
+        this.goodsViewHeight =
+          (leftHeightTotal > rightHeightTotal
+            ? leftHeightTotal
+            : rightHeightTotal) + 'px'
+      }
+    },
+    /**
+            商品点击事件
+         */
+    onItemClick(item) {
+      //  商品无库存不允许跳转
+      if (!item.isHave) {
+        alert('该商品无库存')
+        return
+      }
+      this.$router.push({
+        name: 'goodsDetail',
+        params: {
+          routerType: 'push'
+        },
+        // 把传递的数据附加到我们的 URL 上
+        query: {
+          goodsId: item.id
         }
       })
+    },
+    /**
+     * 监听滑动事件
+     */
+    onScrollChange($event) {
+      this.scrollTopValue = $event.target.scrollTop
+    }
+  },
+  watch: {
+    /**
+     * 监听 layoutType
+     */
+    layoutType() {
+      this.initLayout()
+    },
+    /**
+     * 监听 sort 的改变
+     */
+    sort() {
+      this.setSortGoodsData()
     }
   }
 }
 </script>
+
 <style lang="scss" scoped>
 @import '@css/style.scss';
 
 .goods {
   background-color: $bgColor;
+
+  &-scroll {
+    overflow: hidden;
+    overflow-y: auto;
+  }
 
   &-item {
     background-color: white;
@@ -197,6 +407,44 @@ export default {
   }
 }
 
+// 垂直列表
+.goods-list {
+  &-item {
+    display: flex;
+    border-bottom: 1px solid $lineColor;
+
+    .goods-item-img {
+      width: px2rem(120);
+      height: px2rem(120);
+    }
+
+    .goods-item-desc {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: $marginSize;
+    }
+  }
+}
+
+// 网格布局
+.goods-grid {
+  padding: $marginSize;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  &-item {
+    width: 49%;
+    border-radius: $radiusSize;
+    margin-bottom: $marginSize;
+
+    .goods-item-img {
+      width: 100%;
+    }
+  }
+}
+
+// 瀑布流
 .goods-waterfall {
   position: relative;
   margin: $marginSize;
