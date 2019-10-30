@@ -18,6 +18,11 @@ const routes = [
     // which is lazy-loaded when the route is visited.
     // vue-router 懒加载 -> GoodsList.[hash].js
     component: () => import(/* webpackChunkName: "GoodsList" */ '../views/GoodsList.vue')
+  },
+  {
+    path: '/goodsDetail',
+    name: 'goodsDetail',
+    component: () => import('../views/GoodsDetail.vue')
   }
 ]
 
