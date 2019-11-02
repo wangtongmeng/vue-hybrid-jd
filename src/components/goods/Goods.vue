@@ -325,6 +325,7 @@ export default {
       this.$router.push({
         name: 'goodsDetail',
         params: {
+          routerType: 'push',
           goods: item
         },
         // 把传递的数据附加到我们的 URL 上
